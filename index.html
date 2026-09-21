@@ -72,7 +72,7 @@
         .cal-day-cell { background: #fff; min-height: 52px; padding: 2px; display: flex; flex-direction: column; justify-content: space-between; position: relative; cursor: pointer; transition: background 0.2s; }
         .cal-day-cell:not(.other-month):not(.past-empty):hover { background-color: #e8f5e9; }
         .cal-day-cell.other-month { background: #f5f5f5; color: #bbb; cursor: default; }
-        .cal-day-cell.past-empty { background-color: #9e9e9e !important; cursor: default !important; }
+        .cal-day-cell.past-empty { background-color: #dbdbdb !important; cursor: default !important; }
         .cal-day-num { font-weight: bold; font-size: 11px; color: #000000; margin-left: 2px; display: inline-block; }
         
         .weekend-num { background-color: #fa7890; color: #000000 !important; border-radius: 4px; padding: 1px 5px; margin-left: 1px; display: inline-block; width: fit-content; text-align: center; }
@@ -113,7 +113,7 @@
         .header { text-align: center; border-bottom: 1px dashed #e0e0e0; padding-bottom: 10px; margin-bottom: 12px; }
         .header h2 { margin: 0; color: #2e7d32; font-size: 18px; border: none; }
         .customer-name { font-size: 17px; font-weight: bold; color: #0d47a1; margin-top: 4px; display: flex; flex-direction: column; align-items: center; }
-        .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #444; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #000000; }
         .detail-row .value { font-weight: bold; color: #0d47a1; }
         .divider { height: 1px; background-color: #eee; margin: 8px 0; }
         .payment-section { background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e0e0cb; }
@@ -157,9 +157,9 @@
         .hp-day-cell.holiday-marked { color: #4caf50 !important; font-weight: 900; font-size: 14px; }
         .hp-dot { width: 3.5px; height: 3.5px; background-color: #4caf50; border-radius: 50%; margin-top: 2px; }
 
-        .btn-postponed-list { width: 100%; background-color: #f57c00; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 12px; margin-bottom: 0; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }
-        .btn-postponed-list:hover { background-color: #e65100; }
-        .badge-postponed-count { background: white; color: #e65100; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 900; }
+        .btn-postponed-list { width: 100%; background-color: #e9382f; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 12px; margin-bottom: 0; display: flex; justify-content: center; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }
+        .btn-postponed-list:hover { background-color: #cc2c24; }
+        .badge-postponed-count { background: white; color: #e9382f; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: 900; }
 
         body.dark-bg { background-color: #000000; }
     </style>
@@ -343,7 +343,7 @@
 <!-- Modal รายชื่อขอเลื่อน -->
 <div class="modal-overlay" id="postponedModalOverlay" style="z-index: 1001;">
     <div class="modal-content" style="max-width: 380px; padding: 16px; border-top: 5px solid #e65100;">
-        <h3 style="margin: 0 0 12px 0; color: #e65100; font-size: 16px; text-align: center;">⏳ รายชื่อลูกค้าที่ขอเลื่อน</h3>
+        <h3 style="margin: 0 0 12px 0; color: #e9382f; font-size: 16px; text-align: center;">⏳ รายชื่อลูกค้าที่ขอเลื่อน</h3>
         <div id="postponedModalListArea" style="width: 100%; max-height: 300px; overflow-y: auto; font-size: 13px; background: #fff3e0; border: 1px solid #ffcc80; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
             <div style="text-align: center; color: #888; font-size: 12px;">ไม่มีรายการขอเลื่อน</div>
         </div>
@@ -358,7 +358,7 @@
             <div class="header">
                 <h2>✔️คอนเฟริมนัด-แพถุงเงิน🎣🐿️</h2>
                 <div class="customer-name" style="display: flex; flex-direction: column; align-items: center;">
-  		            <span id="outName" style="color: #ff5605; font-weight: bold;"></span>
+          			<span id="outName" style="color: #ff5605; font-weight: bold;"></span>
                     <span id="outPostponeText" style="color: #FF0000; font-weight: bold; margin-top: 4px; display: none;"></span>
 	            </div>
             </div>
@@ -441,7 +441,7 @@
             <button class="btn-submit" style="background-color: #8e24aa; margin: 0; padding: 11px; font-size: 14px;" onclick="choosePostponeSpecific()">📅 เลื่อนไปวันอื่น (ระบุวัน)</button>
             <button class="btn-submit" style="background-color: #d84315; margin: 0; padding: 11px; font-size: 14px;" onclick="choosePostponeIndefinite()">⏳ เลื่อนไม่มีกำหนด (พักคิว)</button>
             <button class="btn-submit" style="background-color: #e53935; margin: 0; padding: 11px; font-size: 14px;" onclick="chooseDeleteBooking()">🗑️ ลบการจอง</button>
-            <button class="btn-submit" id="btnChoiceUnlock" style="background-color: #ff9800; margin: 0; padding: 11px; font-size: 14px; display: none;" onclick="chooseUnlockBooking()">🔓 ปลดล็อก (ใส่รหัส)</button>
+            <button class="btn-submit" id="btnChoiceUnlock" style="background-color: #ff9800; margin: 0; padding: 11px; font-size: 14px; display: none;" onclick="chooseUnlockBooking()">🔓 ปลดล็อก</button>
             <button class="btn-submit" id="btnChoiceRelock" style="background-color: #546e7a; margin: 0; padding: 11px; font-size: 14px; display: none;" onclick="chooseRelockBooking()">🔒 ล็อกคืน</button>
             <button class="btn-close" style="margin-top: 4px; padding: 8px;" onclick="closeActionChoiceModal()">ปิด</button>
         </div>
@@ -917,6 +917,8 @@
                         if (b.checkOutDate) { let d = new Date(b.checkOutDate); if (!isNaN(d)) b.checkOutDate = toDateStr(d); }
                         b.cInTime = cleanTimeString(b.cInTime || '14:00');
                         b.cOutTime = cleanTimeString(b.cOutTime || '12:00');
+                        if (b.originalDate) { let d = new Date(b.originalDate); if (!isNaN(d)) b.originalDate = toDateStr(d); }
+                        if (b.originalCheckOutDate) { let d = new Date(b.originalCheckOutDate); if (!isNaN(d)) b.originalCheckOutDate = toDateStr(d); }
                         return b;
                     });
                     
@@ -1034,6 +1036,16 @@
         const monthIndex = parseInt(parts[1], 10) - 1;
         const yearTh = parseInt(parts[0], 10) + 543;
         return `${day} ${monthsThai[monthIndex].name} ${yearTh}`;
+    }
+
+    function formatShortThaiDate(dateString) {
+        if (!dateString || typeof dateString !== 'string') return "-";
+        const parts = dateString.split('-');
+        if (parts.length !== 3) return dateString;
+        const day = parseInt(parts[2], 10);
+        const monthIndex = parseInt(parts[1], 10) - 1;
+        const yearThShort = (parseInt(parts[0], 10) + 543).toString().substring(2);
+        return `${day} ${shortMonthsThai[monthIndex]} ${yearThShort}`;
     }
 
     function setBookingCheckInDate(dateStr) {
@@ -1158,6 +1170,7 @@
     }
 
     function isHolidayOrWeekend(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') return false;
         const dObj = new Date(dateStr);
         const dayOfWeek = dObj.getDay();
         return (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6) || customHolidays.some(h => h.date === dateStr);
@@ -1180,16 +1193,13 @@
     }
 
     function promptUnlock(id) {
-        const pwd = prompt("กรุณากรอกรหัสผ่านเพื่อปลดล็อก:");
-        if (pwd === "1616") {
+        if (confirm("ปลดล้อคไหม ?\n\n(กด OK/ตกลง = ใช่  |  กด Cancel/ยกเลิก = ไม่)")) {
             unlockedBookingIds.push(String(id));
             alert("🔓 ปลดล็อกเรียบร้อย");
             renderView();
             if (selectedBookingForAction && String(selectedBookingForAction.id) === String(id)) {
                 openActionChoiceModal(selectedBookingForAction);
             }
-        } else if (pwd !== null) {
-            alert("❌ รหัสผ่านไม่ถูกต้อง");
         }
     }
 
@@ -1238,7 +1248,7 @@
     }
 
     function getFormattedName(name) {
-        return name ? (name.startsWith('คุณ') ? name : `คุณ${name}`) : "";
+        return name ? (name.startsWith('คุณ') ? name : `คุณ  ${name}`) : "";
     }
 
     function selectDateFromCalendar(dateStr) {
@@ -1294,7 +1304,6 @@
     function chooseUnlockBooking() { if (selectedBookingForAction) promptUnlock(selectedBookingForAction.id); }
     function chooseRelockBooking() { if (selectedBookingForAction) relockBooking(selectedBookingForAction.id); }
 
-    // --- ฟังก์ชันเลื่อนจอง ---
     function choosePostponeSpecific() {
         if (!selectedBookingForAction) return;
         const b = selectedBookingForAction;
@@ -1302,6 +1311,7 @@
         
         document.getElementById('formTitle').innerText = '📅 เลื่อนวันจอง (ระบุวันใหม่)';
         document.getElementById('formCardBox').dataset.postponeFrom = b.checkInDate;
+        document.getElementById('formCardBox').dataset.postponeFromOut = b.checkOutDate;
         
         closeActionChoiceModal();
     }
@@ -1339,6 +1349,28 @@
         startEditMode(b.id);
         document.getElementById('formTitle').innerText = '📅 ระบุวันจองใหม่ (จากรายการเลื่อน)';
         document.getElementById('formCardBox').dataset.postponeFrom = b.originalDate || "";
+        document.getElementById('formCardBox').dataset.postponeFromOut = b.originalCheckOutDate || "";
+    }
+
+    function cancelPostponedBooking(id) {
+        if (confirm('แน่ใจใช่ไหมจะยกเลิกการจอง ใช่ หรือ ไม่')) {
+            const idx = bookings.findIndex(b => String(b.id) === String(id));
+            if (idx !== -1) {
+                bookings[idx].status = 'cancelled';
+                bookings[idx].checkInDate = bookings[idx].originalDate;
+                if (bookings[idx].originalCheckOutDate) {
+                    bookings[idx].checkOutDate = bookings[idx].originalCheckOutDate;
+                } else {
+                    const d = new Date(bookings[idx].originalDate);
+                    d.setDate(d.getDate() + 1);
+                    bookings[idx].checkOutDate = toDateStr(d);
+                }
+                
+                saveToLocal();
+                enqueueSyncAction({ action: 'saveBooking', booking: bookings[idx] });
+                renderView();
+            }
+        }
     }
 
     function renderPostponedList() {
@@ -1366,18 +1398,21 @@
         pList.forEach(b => {
             let origText = "ไม่ระบุวันเดิม";
             if (b.originalDate) {
-                const d = new Date(b.originalDate);
-                if (!isNaN(d)) {
-                    origText = `${d.getDate()}/${shortMonthsThai[d.getMonth()]}/${(d.getFullYear() + 543).toString().substring(2)}`;
+                origText = formatShortThaiDate(b.originalDate);
+                if (b.originalCheckOutDate) {
+                    origText += ` - ${formatShortThaiDate(b.originalCheckOutDate)}`;
                 }
             }
             
-            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px dashed #ccc;">
+            html += `<div style="display:flex; flex-direction:column; gap:8px; padding: 10px 0; border-bottom: 1px dashed #ccc;">
                 <div style="flex: 1;">
                     <span style="font-weight:bold; color:#0d47a1; cursor:pointer; text-decoration:underline;" onclick='closePostponedModal(); showSummaryModalById("${b.id}")'>${getFormattedName(b.name)}</span><br>
                     <small style="color:#d32f2f; font-weight:bold;">(เลื่อนจาก: ${origText})</small>
                 </div>
-                <button onclick="resumePostponed('${b.id}')" style="background:#2e7d32; color:white; border:none; padding:6px 10px; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">ลงวันจอง</button>
+                <div style="display:flex; gap: 6px; width: 100%;">
+                    <button onclick="resumePostponed('${b.id}')" style="flex: 1; background:#2e7d32; color:white; border:none; padding:8px 0; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">ลงวันจอง</button>
+                    <button onclick="cancelPostponedBooking('${b.id}')" style="flex: 1; background:#e53935; color:white; border:none; padding:8px 0; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">ยกเลิกจอง</button>
+                </div>
             </div>`;
         });
         area.innerHTML = html;
@@ -1385,7 +1420,7 @@
 
     function renderCalendar() {
         const grid = document.getElementById('calendarGrid');
-        grid.innerHTML = '';
+        grid.innerHTML = '<div class="cal-day-header header-sun">อาทิตย์</div><div class="cal-day-header header-mon">จันทร์</div><div class="cal-day-header header-tue">อังคาร</div><div class="cal-day-header header-wed">พุธ</div><div class="cal-day-header header-thu">พฤหัสบดี</div><div class="cal-day-header header-fri">ศุกร์</div><div class="cal-day-header header-sat">เสาร์</div>';
 
         const year = viewingDate.getFullYear();
         const month = viewingDate.getMonth();
@@ -1400,23 +1435,6 @@
         const nextMonthObj = new Date(year, month + 1, 1);
         document.getElementById('btnPrevMonth').innerText = `◀ ${monthsThai[prevMonthObj.getMonth()].name}`;
         document.getElementById('btnNextMonth').innerText = `${monthsThai[nextMonthObj.getMonth()].name} ▶`;
-
-        const headerDays = [
-            { name: 'อาทิตย์', cls: 'header-sun' },
-            { name: 'จันทร์', cls: 'header-mon' },
-            { name: 'อังคาร', cls: 'header-tue' },
-            { name: 'พุธ', cls: 'header-wed' },
-            { name: 'พฤหัสบดี', cls: 'header-thu' },
-            { name: 'ศุกร์', cls: 'header-fri' },
-            { name: 'เสาร์', cls: 'header-sat' }
-        ];
-
-        headerDays.forEach(hd => {
-            const hDiv = document.createElement('div');
-            hDiv.className = `cal-day-header ${hd.cls}`;
-            hDiv.innerText = hd.name;
-            grid.appendChild(hDiv);
-        });
 
         const firstDayOfMonth = new Date(year, month, 1);
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1445,7 +1463,6 @@
             dayNumSpan.innerText = day;
             cell.appendChild(dayNumSpan);
 
-            // Hide postponed bookings from calendar
             const activeBookingsOnDate = bookings.filter(b => b.status === 'active' && typeof b.checkInDate === 'string' && typeof b.checkOutDate === 'string' && fullDateStr >= b.checkInDate && fullDateStr <= getPrevDateStr(b.checkOutDate));
 
             if (activeBookingsOnDate.length > 0) {
@@ -1458,6 +1475,8 @@
                     const formattedOutTime = cleanTimeString(b.cOutTime).replace(':', '.');
                     const lastDisplayDateStr = getPrevDateStr(b.checkOutDate);
                     const lockIcon = isLockedActive(b) ? '✔️ ' : '';
+
+                    let badgeContent = '';
 
                     if (fullDateStr === b.checkInDate && fullDateStr === lastDisplayDateStr) {
                         container.innerHTML = `<div class="badge-green-in-time">เข้า ${formattedInTime}</div><div class="badge-yellow-name">${lockIcon}${getFormattedName(b.name)}</div><div class="badge-red-time">ออก ${formattedOutTime} น. วันถัดไป</div>`;
@@ -1499,21 +1518,32 @@
         const currentYear = viewingDate.getFullYear();
         const currentMonthStr = String(viewingDate.getMonth() + 1).padStart(2, '0');
 
-        // Only show active and cancelled in the regular table. Postponed is in its own list.
-        const monthBookings = bookings.filter(b => b.status !== 'postponed' && b.checkInDate && typeof b.checkInDate === 'string' && b.checkInDate.startsWith(`${currentYear}-${currentMonthStr}`));
+        const monthBookings = bookings.filter(b => {
+            const targetDate = (b.status === 'postponed') ? b.originalDate : b.checkInDate;
+            if (!targetDate || typeof targetDate !== 'string') return false;
+            return targetDate.startsWith(`${currentYear}-${currentMonthStr}`);
+        });
 
         if (monthBookings.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">ไม่มีข้อมูลการจองในเดือนนี้</td></tr>`;
             return;
         }
 
-        monthBookings.sort((a, b) => new Date(a.checkInDate) - new Date(b.checkInDate));
+        monthBookings.sort((a, b) => {
+            const dateA = new Date((a.status === 'postponed') ? a.originalDate : a.checkInDate);
+            const dateB = new Date((b.status === 'postponed') ? b.originalDate : b.checkInDate);
+            return dateA - dateB;
+        });
 
         monthBookings.forEach(b => {
             const tr = document.createElement('tr');
+            
+            const targetInDate = (b.status === 'postponed') ? b.originalDate : b.checkInDate;
+            const targetOutDate = (b.status === 'postponed') ? (b.originalCheckOutDate || b.checkOutDate) : b.checkOutDate;
+            
             const isPast = isBookingLocked(b.checkOutDate);
             const isCurrentlyUnlocked = unlockedBookingIds.includes(String(b.id));
-            const locked = isPast && !isCurrentlyUnlocked;
+            const locked = isPast && !isCurrentlyUnlocked && b.status !== 'postponed';
             const depositVal = Number(b.deposit || 0);
 
             let statusHtml = '';
@@ -1521,10 +1551,13 @@
 
             if (b.status === 'cancelled') {
                 statusHtml = `<span class="status-badge badge-orange">ยกเลิกแล้ว</span>`;
-                actionHtml = `<button class="btn-delete" onclick="deleteBooking('${b.id}')">ลบ</button>`;
+                actionHtml = `<button class="btn-delete" onclick="deleteBooking('${b.id}')">ลบถาวร</button>`;
+            } else if (b.status === 'postponed') {
+                statusHtml = `<span class="status-badge" style="background-color: #d42b25; color: white;">เลื่อน</span>`;
+                actionHtml = `<div class="action-btns"><button class="btn-edit" style="background-color: #2e7d32;" onclick="resumePostponed('${b.id}')">ลงวันจอง</button></div>`;
             } else if (locked) {
                 statusHtml = `<span class="status-badge badge-locked">ประวัติเก่า</span>`;
-                actionHtml = `<button class="btn-unlock" onclick="promptUnlock('${b.id}')">🔒 ล็อกแล้ว</button>`;
+                actionHtml = `<button class="btn-unlock" onclick="promptUnlock('${b.id}')">🔓 ปลดล็อก</button>`;
             } else {
                 statusHtml = depositVal > 0 ? `<span class="status-badge badge-deposited">มัดจำแล้ว</span>` : `<span class="status-badge badge-verbal">มัดจำปากเปล่า</span>`;
                 let relockBtn = (isPast && isCurrentlyUnlocked) ? `<button class="btn-relock" onclick="relockBooking('${b.id}')">🔒 ล็อกคืน</button>` : '';
@@ -1533,7 +1566,7 @@
 
             tr.innerHTML = `
                 <td><span class="clickable-name" onclick='showSummaryModalById("${b.id}")'>${getFormattedName(b.name)}</span></td>
-                <td>${formatFullThaiDate(b.checkInDate)}<br><small style="color:#666;">ถึง ${formatFullThaiDate(b.checkOutDate)}</small></td>
+                <td>${formatFullThaiDate(targetInDate)}<br><small style="color:#666;">ถึง ${formatFullThaiDate(targetOutDate)}</small></td>
                 <td>${b.guests} ท่าน${b.pets > 0 ? `<br><small style="color:#e65100;">🐾 ${b.pets} ตัว</small>` : ''}</td>
                 <td>${Number(b.price).toLocaleString()} บ.</td>
                 <td>${statusHtml}</td>
@@ -1572,13 +1605,19 @@
 
         const formBox = document.getElementById('formCardBox');
         const postponeFrom = formBox.dataset.postponeFrom;
+        const postponeFromOut = formBox.dataset.postponeFromOut;
 
         if (postponeFrom) {
             bookingData.originalDate = postponeFrom;
+            if(postponeFromOut) bookingData.originalCheckOutDate = postponeFromOut;
             formBox.removeAttribute('data-postpone-from');
+            formBox.removeAttribute('data-postpone-from-out');
         } else if (editingId !== null) {
             const oldB = bookings.find(b => String(b.id) === String(editingId));
-            if(oldB && oldB.originalDate) bookingData.originalDate = oldB.originalDate;
+            if(oldB && oldB.originalDate) {
+                bookingData.originalDate = oldB.originalDate;
+                if(oldB.originalCheckOutDate) bookingData.originalCheckOutDate = oldB.originalCheckOutDate;
+            }
         }
 
         if (editingId !== null) {
@@ -1601,7 +1640,7 @@
         const b = bookings.find(item => String(item.id) === String(id));
         if (!b) return;
 
-        if (isLockedActive(b)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดที่ปุ่มล็อกเพื่อใส่รหัสผ่านก่อนแก้ไขครับ"); return; }
+        if (isLockedActive(b)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนแก้ไขครับ"); return; }
 
         editingId = b.id;
         document.getElementById('inName').value = b.name.replace(/^คุณ/, '');
@@ -1610,7 +1649,6 @@
             setBookingCheckInDate(b.checkInDate);
             setBookingCheckOutDate(b.checkOutDate);
         } else {
-            // Default to today if it was postponed without date
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1643,6 +1681,7 @@
         editingId = null;
         document.getElementById('formCardBox').classList.remove('editing-mode');
         document.getElementById('formCardBox').removeAttribute('data-postpone-from');
+        document.getElementById('formCardBox').removeAttribute('data-postpone-from-out');
         document.getElementById('formTitle').innerText = '🎣🐿️ ข้อมูลการจองแพถุงเงิน 🎣🐿️';
         document.getElementById('btnSubmitAction').innerText = 'บันทึก & สรุปการจอง';
         document.getElementById('btnCancelEdit').style.display = 'none';
@@ -1665,7 +1704,7 @@
         const b = bookings.find(item => String(item.id) === String(id));
         if (!b) return;
 
-        if (isLockedActive(b)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดที่ปุ่มล็อกเพื่อใส่รหัสผ่านก่อนลบครับ"); return; }
+        if (isLockedActive(b)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนลบครับ"); return; }
 
         if (confirm(`คุณต้องการลบรายการจองของ "${getFormattedName(b.name)}" ใช่หรือไม่?`)) {
             bookings = bookings.filter(item => String(item.id) !== String(id));
@@ -1688,21 +1727,22 @@
         const postponeEl = document.getElementById('outPostponeText');
         postponeEl.style.display = 'none';
         postponeEl.style.fontSize = '14px';
+        postponeEl.style.color = '#d60047'; // รีเซ็ตสีตั้งต้น
         
         if (b.status === 'postponed') {
-            postponeEl.innerText = '(เลื่อนไม่มีกำหนด)';
+            postponeEl.innerText = '( เลื่อนไม่มีกำหนด )';
             postponeEl.style.fontSize = '34px';
             postponeEl.style.display = 'block';
         } else if (b.originalDate) {
-            const d = new Date(b.originalDate);
-            if (!isNaN(d)) {
-                const day = d.getDate();
-                const mStr = shortMonthsThai[d.getMonth()];
-                const yShort = (d.getFullYear() + 543).toString().substring(2);
-                postponeEl.innerText = `(เลื่อน มาจาก วันที่ ${day}/${mStr}/${yShort})`;
-                postponeEl.style.fontSize = '14px';
-                postponeEl.style.display = 'block';
+            let txt = `(เลื่อนมาจากวันที่: ${formatShortThaiDate(b.originalDate)}`;
+            if(b.originalCheckOutDate) {
+                txt += ` - ${formatShortThaiDate(b.originalCheckOutDate)}`;
             }
+            txt += `)`;
+            postponeEl.innerText = txt;
+            postponeEl.style.fontSize = '14px';
+            postponeEl.style.color = '#7a7a7a'; // เปลี่ยนสีตามที่คุณขอ
+            postponeEl.style.display = 'block';
         }
 
         const isPostponed = b.status === 'postponed';
@@ -1714,8 +1754,8 @@
             if (b.originalCheckOutDate) {
                 displayCheckOut = b.originalCheckOutDate;
             } else if (b.originalDate) {
-                // Fallback สำหรับรายการเลื่อนเก่าที่ไม่ได้เก็บ originalCheckOutDate ไว้ (บวกเพิ่ม 1 วัน)
-                const d = new Date(b.originalDate);
+                const parts = b.originalDate.split('-');
+                const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
                 d.setDate(d.getDate() + 1);
                 displayCheckOut = toDateStr(d);
             }
@@ -1726,7 +1766,6 @@
         document.getElementById('outCheckOut').innerText = displayCheckOut ? formatFullThaiDate(displayCheckOut) : "-";
         document.getElementById('outCheckOutTime').innerText = b.cOutTime ? cleanTimeString(b.cOutTime) : "-";
 
-        // ปรับสีตัวอักษรเป็น #778899 และขีดฆ่า หากถูกเลื่อนไม่มีกำหนด
         const colorCode = isPostponed ? '#778899' : '';
         const decoration = isPostponed ? 'line-through' : 'none';
 
@@ -1953,7 +1992,7 @@
                 wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet;
             } else if (selYear === "2026" && predefinedIncome2569[mVal]) {
                 const p = predefinedIncome2569[mVal];
-                wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet;
+                wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekdayNet; wEndNet = p.weekendNet;
             } else {
                 bookings.filter(b => b.status === 'active' && typeof b.checkInDate === 'string' && b.checkInDate.startsWith(`${selYear}-${mVal}`)).forEach(b => {
                     const p = Number(b.price || 0);
