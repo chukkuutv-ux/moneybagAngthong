@@ -665,7 +665,7 @@
 </div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbiy44TPMZ7SPsNUO6z3xuB4O-4mFngvjhmk1Qxs-b7__eDlZE6m_0HvoJA4-tzxkg7Q/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6hUm7n0Ra8L5fbMWM6gBjG6yezOOtmImb3pbvXAwg_DQmi76m99uOMyRdFCDwPPkK/exec';
     
     const initialBookings2569 = [
         { id: '20260902-walkin', name: 'วอค อิน', checkInDate: '2026-09-02', checkOutDate: '2026-09-03', cInTime: '14:00', cOutTime: '12:00', guests: '9', pets: '0', price: '1500', deposit: '0', status: 'active' },
@@ -870,24 +870,21 @@
         isSyncing = true;
         updateSyncStatusUI();
 
-        while (syncQueue.length > 0) {
-            const currentPayload = syncQueue[0];
-            try {
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(currentPayload) });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    syncQueue.shift();
-                    localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
-                    updateSyncStatusUI();
-                } else {
-                    console.error('API Error:', result.message);
-                    break;
-                }
-            } catch (error) {
-                console.error('เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบสนองระหว่างซิงค์', error);
-                break;
+        try {
+            const queueToSend = [...syncQueue];
+            const payload = { action: 'batchSync', queue: queueToSend };
+
+            const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                syncQueue.splice(0, queueToSend.length);
+                localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
+            } else {
+                console.error('API Error:', result.message);
             }
+        } catch (error) {
+            console.error('เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบสนองระหว่างซิงค์', error);
         }
 
         isSyncing = false;
@@ -908,11 +905,11 @@
         if (syncQueue.length === 0) {
             try {
                 const noCache = Date.now();
-                const resBookings = await fetch(`${SCRIPT_URL}?action=getBookings&t=${noCache}`);
-                const dataBookings = await resBookings.json();
+                const res = await fetch(`${SCRIPT_URL}?action=getAllData&t=${noCache}`);
+                const result = await res.json();
                 
-                if (dataBookings.status === 'success') {
-                    let fetchedBookings = dataBookings.data.map(b => {
+                if (result.status === 'success') {
+                    let fetchedBookings = result.data.bookings.map(b => {
                         if (b.checkInDate) { let d = new Date(b.checkInDate); if (!isNaN(d)) b.checkInDate = toDateStr(d); }
                         if (b.checkOutDate) { let d = new Date(b.checkOutDate); if (!isNaN(d)) b.checkOutDate = toDateStr(d); }
                         b.cInTime = cleanTimeString(b.cInTime || '14:00');
@@ -929,19 +926,17 @@
                     });
 
                     bookings = fetchedBookings;
-                }
 
-                const resHolidays = await fetch(`${SCRIPT_URL}?action=getHolidays&t=${noCache}`);
-                const dataHolidays = await resHolidays.json();
-                if (dataHolidays.status === 'success' && dataHolidays.data.length > 0) {
-                    customHolidays = dataHolidays.data.map(h => {
-                        if (h.date) { let d = new Date(h.date); if (!isNaN(d)) h.date = toDateStr(d); }
-                        return h;
-                    });
+                    if (result.data.holidays && result.data.holidays.length > 0) {
+                        customHolidays = result.data.holidays.map(h => {
+                            if (h.date) { let d = new Date(h.date); if (!isNaN(d)) h.date = toDateStr(d); }
+                            return h;
+                        });
+                    }
+                    
+                    saveToLocal();
+                    renderView();
                 }
-                
-                saveToLocal();
-                renderView();
             } catch (error) {
                 console.error('ดึงข้อมูลล้มเหลว', error);
             }
@@ -1429,7 +1424,7 @@
         const monthName = monthsThai[month].name;
         document.getElementById('calendarTitle').innerText = `${monthName} ${yearTh}`;
         
-        document.getElementById('calendarSubTitleText').innerText = `${monthsThai[month].name} พ.ศ ${yearTh}`;
+        document.getElementById('calendarHeaderTitle').innerText = `ตารางวันจอง แพถุงเงิน - เดือน ${monthName} ${yearTh}`;
 
         const prevMonthObj = new Date(year, month - 1, 1);
         const nextMonthObj = new Date(year, month + 1, 1);
@@ -1551,7 +1546,7 @@
 
             if (b.status === 'cancelled') {
                 statusHtml = `<span class="status-badge badge-orange">ยกเลิกแล้ว</span>`;
-                actionHtml = `<button class="btn-delete" onclick="deleteBooking('${b.id}')">ลบถาวร</button>`;
+                actionHtml = `<div class="action-btns"><button class="btn-edit" onclick="startEditMode('${b.id}')">แก้ไข</button><button class="btn-delete" onclick="deleteBooking('${b.id}')">ลบ</button></div>`;
             } else if (b.status === 'postponed') {
                 statusHtml = `<span class="status-badge" style="background-color: #d42b25; color: white;">เลื่อน</span>`;
                 actionHtml = `<div class="action-btns"><button class="btn-edit" style="background-color: #2e7d32;" onclick="resumePostponed('${b.id}')">ลงวันจอง</button></div>`;
