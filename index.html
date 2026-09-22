@@ -139,7 +139,31 @@
 </head>
 <body>
 
-<div class="main-container">
+<!-- หน้าจอล็อกอิน -->
+<div id="loginScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0f2f5; display: flex; justify-content: center; align-items: center; z-index: 999999;">
+    <div class="card-box" style="width: 90%; max-width: 320px; padding: 25px 20px; text-align: center; border-top: 5px solid #2e7d32;">
+        <h2 style="border-bottom: none; margin-bottom: 5px;">🔒 เข้าสู่ระบบ</h2>
+        <div style="color: #666; font-size: 13px; margin-bottom: 20px;">ระบบจัดการแพถุงเงิน</div>
+        
+        <div class="form-group" style="text-align: left;">
+            <label>ไอดีผู้ใช้งาน (ID)</label>
+            <input type="text" id="loginId" placeholder="กรอกไอดี">
+        </div>
+        <div class="form-group" style="text-align: left;">
+            <label>รหัสผ่าน (Password)</label>
+            <input type="password" id="loginPass" placeholder="กรอกรหัสผ่าน">
+        </div>
+        <div style="text-align: left; font-size: 13px; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #444; font-weight: bold;">
+                <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; cursor: pointer;"> จดจำการเข้าระบบ
+            </label>
+        </div>
+        <button class="btn-submit" onclick="attemptLogin()" style="margin-top: 5px;">เข้าสู่ระบบ</button>
+    </div>
+</div>
+
+<!-- ระบบหลัก (ซ่อนไว้ก่อนจนกว่าจะล็อกอินผ่าน) -->
+<div class="main-container" id="mainApp" style="display: none;">
     
     <div style="display: flex; justify-content: space-between; align-items: stretch; gap: 8px;">
         <div id="syncStatusBadge" class="status-online" style="flex: 1;">
@@ -297,7 +321,7 @@
 </div>
 
 <!-- โหลดหน้าจอ (Heart Loader) -->
-<div id="heartLoadingOverlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); justify-content: center; align-items: center; z-index: 3000; flex-direction: column;">
+<div id="heartLoadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); justify-content: center; align-items: center; z-index: 3000; flex-direction: column;">
     <div id="heartLoaderText" style="font-size: 45px; letter-spacing: 5px; text-shadow: 0 2px 5px rgba(0,0,0,0.1);">💚 🤍 ❤️</div>
     <div style="margin-top: 15px; font-weight: bold; color: #333; font-size: 14px;">กำลังโหลดข้อมูลล่าสุด...</div>
 </div>
@@ -683,7 +707,15 @@
     }
 
     function cleanNumericInput(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
-    function clearLocalCache() { if(confirm("ต้องการล้างระบบและโหลดข้อมูลใหม่ใช่ไหมครับ?")) { localStorage.clear(); location.reload(); } }
+    
+    // ตั้งให้ปุ่มล้างระบบ ออกจากระบบด้วย
+    function clearLocalCache() { 
+        if(confirm("ต้องการล้างระบบและออกจากระบบด้วยใช่ไหมครับ?")) { 
+            localStorage.clear(); 
+            sessionStorage.clear();
+            location.reload(); 
+        } 
+    }
 
     let heartInterval;
     function showHeartLoader() {
@@ -697,6 +729,11 @@
     function hideHeartLoader() { document.getElementById('heartLoadingOverlay').style.display = 'none'; clearInterval(heartInterval); }
 
     window.onload = async function() {
+        // เช็คสถานะการล็อกอิน
+        if (localStorage.getItem('paeLoginRemember') === 'true' || sessionStorage.getItem('paeLoginSession') === 'true') {
+            showApp();
+        }
+
         populateTimeDropdowns();
         populateIncomeFilterDropdowns();
         populateHolidayPickerDropdowns();
@@ -719,10 +756,7 @@
         window.addEventListener('online', () => { updateSyncStatusUI(); });
         window.addEventListener('offline', () => { updateSyncStatusUI(); });
         
-        // ถ้าย้ายมาจากระบบเดิม จะเอาข้อมูลเก่าอัพขึ้น Firestore ให้ครับ
         await checkAndMigrateData();
-
-        showHeartLoader();
 
         // -----------------------------------------------------
         // 2. ระบบ Real-Time ดึงข้อมูลอัตโนมัติ (onSnapshot)
@@ -741,6 +775,34 @@
             renderView();
         });
     };
+
+    // ฟังก์ชันเข้าสู่ระบบ
+    function attemptLogin() {
+        const user = document.getElementById('loginId').value;
+        const pass = document.getElementById('loginPass').value;
+        const remember = document.getElementById('rememberMe').checked;
+
+        if (user === 'kongandki' && pass === '035612496') {
+            if (remember) {
+                localStorage.setItem('paeLoginRemember', 'true');
+            } else {
+                sessionStorage.setItem('paeLoginSession', 'true');
+            }
+            showHeartLoader(); // โชว์โหลดนิดนึงให้ดูสมูท
+            setTimeout(() => {
+                showApp();
+                hideHeartLoader();
+            }, 800);
+        } else {
+            alert('❌ ไอดี หรือ รหัสผ่าน ไม่ถูกต้องครับ!');
+        }
+    }
+
+    // แสดงหน้าแอปและซ่อนหน้าล็อกอิน
+    function showApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+    }
 
     // ฟังก์ชันช่วยเอาข้อมูลเก่าที่ค้างในเครื่อง ดันขึ้น Firestore ให้ 1 ครั้ง
     async function checkAndMigrateData() {
@@ -1817,6 +1879,65 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = `สรุปรายเดือน_${monthName}_${yearTh}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportYearlyToNotepad() {
+        // ดึงปีจาก Dropdown หน้าต่างสรุปรายปี
+        const selYear = document.getElementById('yearlyIncYearSelect').value;
+        const yearTh = parseInt(selYear, 10) + 543;
+
+        let content = `==========================================\n`;
+        content += `        สรุปรายได้แพถุงเงิน (รายปี)\n`;
+        content += `        ประจำปี พ.ศ. ${yearTh}\n`;
+        content += `==========================================\n\n`;
+
+        let grandNet = 0, grandCount = 0;
+
+        for (let i = 0; i < 12; i++) {
+            const mVal = monthsThai[i].val; 
+            let wDayCount = 0, wDayNet = 0, wEndCount = 0, wEndNet = 0;
+
+            if (selYear === "2025" && predefinedIncome2568[mVal]) { 
+                const p = predefinedIncome2568[mVal]; wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet; 
+            } else if (selYear === "2026" && predefinedIncome2569[mVal]) { 
+                const p = predefinedIncome2569[mVal]; wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet; 
+            } else { 
+                bookings.filter(b => b.status === 'active' && typeof b.checkInDate === 'string' && b.checkInDate.startsWith(`${selYear}-${mVal}`)).forEach(b => { 
+                    const p = Number(b.price || 0); 
+                    if (isHolidayOrWeekend(b.checkInDate)) { wEndCount++; wEndNet += p; } 
+                    else { wDayCount++; wDayNet += p; } 
+                }); 
+            }
+
+            const mTotalNet = wDayNet + wEndNet; 
+            const mTotalCount = wDayCount + wEndCount;
+            grandCount += mTotalCount; 
+            grandNet += mTotalNet;
+
+            content += `[เดือน ${monthsThai[i].name}]\n`;
+            content += ` - จำนวนการจอง: ${mTotalCount} รายการ\n`;
+            content += ` - วันธรรมดา: ${wDayCount} วัน | วันหยุด: ${wEndCount} วัน\n`;
+            content += ` - รายได้รวม: ${mTotalNet.toLocaleString()} บาท\n`;
+            content += ` -----------------------------------------\n`;
+        }
+
+        content += `\n==========================================\n`;
+        content += `สรุปยอดรวมทั้งปี พ.ศ. ${yearTh}:\n`;
+        content += `- จำนวนการจองรวม: ${grandCount.toLocaleString()} รายการ\n`;
+        content += `- รายได้รวมทั้งสิ้น: ${grandNet.toLocaleString()} บาท\n`;
+        content += `==========================================\n`;
+        content += `พิมพ์เมื่อ: ${formatFullThaiDate(toDateStr(new Date()))} เวลา ${new Date().toLocaleTimeString('th-TH')}\n`;
+
+        // สร้างไฟล์ดาวน์โหลด
+        const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `สรุปรายปี_${yearTh}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
