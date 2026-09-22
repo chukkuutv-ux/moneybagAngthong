@@ -825,6 +825,16 @@
         window.addEventListener('offline', () => { updateSyncStatusUI(); });
 
         manualSyncAndFetch();
+
+        // -----------------------------------------------------
+        // ระบบ Auto-Sync: ให้แอบตรวจข้อมูลใหม่ทุกๆ 10 วินาที 
+        // ถ้ามีเครื่องอื่นกดเซฟ มันจะเด้งขึ้นหน้าจอเราอัตโนมัติโดยไม่รบกวนการพิมพ์
+        // -----------------------------------------------------
+        setInterval(() => {
+            if (navigator.onLine && !isSyncing) {
+                manualSyncAndFetch(false); // ดึงข้อมูลแบบเงียบๆ ไม่โชว์จอโหลดหัวใจ
+            }
+        }, 10000);
     };
 
     function updateSyncStatusUI() {
