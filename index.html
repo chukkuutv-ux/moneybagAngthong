@@ -264,7 +264,11 @@
             </div>
         </div>
 
-        <h2 style="color: #0d47a1; border-bottom-color: #e3f2fd; margin-top: 20px; margin-bottom: 8px;">รายการจองประจำเดือน</h2>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; margin-bottom: 8px; border-bottom: 2px solid #e3f2fd; padding-bottom: 4px;">
+            <h2 style="color: #0d47a1; margin: 0; border: none; padding: 0;">รายการจองประจำเดือน</h2>
+            <button id="btnGlobalUnlock" onclick="toggleGlobalLock()" style="background-color: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: 0.2s;">🔒 ปลดล็อกปฎิทิน</button>
+        </div>
+        
         <div class="table-responsive">
             <table>
                 <thead>
@@ -504,9 +508,12 @@
                 </div>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="btn-capture" onclick="copyIncomeToClipboard()">📸 รูปภาพสรุปรายได้</button>
-            <button class="btn-close" onclick="closeIncomeModal()">ปิด</button>
+        <div class="modal-actions" style="flex-direction: column;">
+            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="exportMonthlyToNotepad()">📝 บันทึกรายเดือน (Notepad)</button>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button class="btn-capture" onclick="copyIncomeToClipboard()" style="flex: 1;">📸 รูปภาพ</button>
+                <button class="btn-close" onclick="closeIncomeModal()" style="flex: 1;">ปิด</button>
+            </div>
         </div>
     </div>
 </div>
@@ -542,9 +549,12 @@
                 <div style="font-size: 11px; color: #555; margin-top: 4px;">จำนวนการจองรวม: <span id="yearlyIncTotalCount" style="font-weight:bold; color:#000;">0</span> รายการ</div>
             </div>
         </div>
-        <div class="modal-actions">
-            <button class="btn-capture" style="background-color: #0288d1;" onclick="copyYearlyIncomeToClipboard()">📸 รูปภาพสรุปรายปี</button>
-            <button class="btn-close" onclick="closeYearlyIncomeModal()">ปิด</button>
+        <div class="modal-actions" style="flex-direction: column;">
+            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="exportYearlyToNotepad()">📝 บันทึกรายปี (Notepad)</button>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button class="btn-capture" style="background-color: #0288d1; flex: 1;" onclick="copyYearlyIncomeToClipboard()">📸 รูปภาพ</button>
+                <button class="btn-close" onclick="closeYearlyIncomeModal()" style="flex: 1;">ปิด</button>
+            </div>
         </div>
     </div>
 </div>
@@ -631,6 +641,7 @@
     let unlockedBookingIds = [];
     let selectedBookingForAction = null;
     let deletedHolidaysStack = [];
+    let isGlobalUnlocked = false;
 
     let currentCheckInDateStr = '';
     let currentCheckOutDateStr = '';
@@ -1004,6 +1015,7 @@
 
     function isLockedActive(b) {
         if (!b) return false;
+        if (isGlobalUnlocked) return false; // ถ้าโหมดปลดล็อกรวมทำงานอยู่ ให้ถือว่าไม่ล็อก
         if (unlockedBookingIds.includes(String(b.id))) return false;
         return isBookingLocked(b.checkOutDate);
     }
@@ -1266,8 +1278,11 @@
                     cell.appendChild(container);
                 });
             } else {
-                if (fullDateStr < todayStr) cell.classList.add('past-empty');
-                else {
+                // ถ้าวันที่ผ่านไปแล้ว และ "ยังไม่ได้กดปุ่มปลดล็อก" ให้ล็อกตารางไว้
+                if (fullDateStr < todayStr && !isGlobalUnlocked) {
+                    cell.classList.add('past-empty');
+                } else {
+                    // แต่ถ้ากดปลดล็อกแล้ว (หรือเป็นวันอนาคต) ให้แสดงป้าย "ว่าง" และกดจองได้
                     const emptyBadge = document.createElement('div');
                     emptyBadge.className = 'badge-empty-slot';
                     emptyBadge.innerText = 'ว่าง';
@@ -1751,6 +1766,91 @@
         else { btn.innerText = '🌙'; localStorage.setItem('bgTheme', 'light'); }
     }
     if (localStorage.getItem('bgTheme') === 'dark') { document.body.classList.add('dark-bg'); document.getElementById('themeToggleBtn').innerText = '☀️'; }
+    
+    function exportMonthlyToNotepad() {
+        // ดึงเดือนและปีจาก Dropdown หน้าต่างสรุป
+        const selYear = document.getElementById('incYearSelect').value; 
+        const selMonth = document.getElementById('incMonthSelect').value;
+        const yearTh = parseInt(selYear, 10) + 543;
+        const monthName = monthsThai[parseInt(selMonth, 10) - 1].name;
+
+        // ดึงข้อมูลการจองตามที่เลือก
+        const mBookings = bookings.filter(b => b.status === 'active' && typeof b.checkInDate === 'string' && b.checkInDate.startsWith(`${selYear}-${selMonth}`));
+        mBookings.sort((a, b) => new Date(a.checkInDate) - new Date(b.checkInDate));
+
+        let listText = "";
+        mBookings.forEach((b, index) => {
+            const p = Number(b.price || 0);
+            const inDate = formatFullThaiDate(b.checkInDate);
+            const outDate = formatFullThaiDate(b.checkOutDate);
+            
+            listText += `${index + 1}. ชื่อลูกค้า: ${b.name.replace(/^คุณ\s*/, '')}\n`;
+            listText += `   เข้าพัก: ${inDate} (${cleanTimeString(b.cInTime)} น.)\n`;
+            listText += `   ออก: ${outDate} (${cleanTimeString(b.cOutTime)} น.)\n`;
+            listText += `   จำนวน: ${b.guests} ท่าน | สัตว์เลี้ยง: ${b.pets} ตัว\n`;
+            listText += `   ค่าแพ: ${p.toLocaleString()} บาท\n`;
+            listText += `------------------------------------------\n`;
+        });
+
+        // สร้างเนื้อหาเอกสาร (ดึงตัวเลขจากหน้าจอให้ตรงเป๊ะ)
+        let content = `==========================================\n`;
+        content += `        สรุปรายงานจองแพถุงเงิน\n`;
+        content += `        ประจำเดือน ${monthName} พ.ศ. ${yearTh}\n`;
+        content += `==========================================\n\n`;
+        
+        content += `สรุปภาพรวมรายเดือน:\n`;
+        content += `- ${document.getElementById('incMonthCount').innerText}\n`;
+        content += `- วันธรรมดา: ${document.getElementById('incWeekdayCount').innerText} (ยอดรวม: ${document.getElementById('incWeekdayNet').innerText})\n`;
+        content += `- วันหยุด: ${document.getElementById('incWeekendCount').innerText} (ยอดรวม: ${document.getElementById('incWeekendNet').innerText})\n`;
+        content += `- รายได้รวมทั้งเดือน: ${document.getElementById('incMonthNet').innerText}\n\n`;
+        
+        content += `==========================================\n`;
+        content += `รายละเอียดคิวจองและรายชื่อลูกค้า\n`;
+        content += `==========================================\n`;
+        content += mBookings.length > 0 ? listText : `ไม่มีข้อมูลรายละเอียดการจองในระบบ\n`;
+        content += `==========================================\n`;
+        content += `พิมพ์เมื่อ: ${formatFullThaiDate(toDateStr(new Date()))} เวลา ${new Date().toLocaleTimeString('th-TH')}\n`;
+
+        // สร้างไฟล์ดาวน์โหลด
+        const blob = new Blob(['\ufeff' + content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `สรุปรายเดือน_${monthName}_${yearTh}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function toggleGlobalLock() {
+        const btn = document.getElementById('btnGlobalUnlock');
+        
+        if (!isGlobalUnlocked) {
+            if (confirm("ต้องการจะปลดล็อกประวัติการจองเก่าทั้งหมด ใช่หรือไม่?")) {
+                isGlobalUnlocked = true;
+                btn.innerHTML = '🔓 ล็อกประวัติกลับ';
+                btn.style.backgroundColor = '#546e7a';
+                alert("🔓 ปลดล็อกประวัติทั้งหมดเรียบร้อยแล้ว ช่องปฏิทินที่ผ่านไปแล้วจะเปิดให้กดจองย้อนหลังได้ครับ");
+                renderView(); // รีเฟรชหน้าจอให้ช่องสีเทากลับมากดได้
+            }
+        } else {
+            if (confirm("ต้องการล็อกประวัติการจองกลับไปเป็นประวัติถาวร ใช่หรือไม่?")) {
+                isGlobalUnlocked = false;
+                btn.innerHTML = '🔒 ปลดล็อกปฎิทิน';
+                btn.style.backgroundColor = '#ff9800';
+                
+                // ป้องกันกรณีที่กดแก้ไขค้างไว้แล้วมาล็อก
+                if (editingId !== null) {
+                    const b = bookings.find(item => String(item.id) === String(editingId));
+                    if (b && isLockedActive(b)) cancelEditMode();
+                }
+                
+                alert("🔒 ล็อกประวัติกลับเป็นปกติเรียบร้อยครับ");
+                renderView();
+            }
+        }
+    }
 </script>
 
 </body>
