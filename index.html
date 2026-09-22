@@ -666,7 +666,7 @@
 
 <script>
     // URL สำหรับเรียกใช้งาน Google Apps Script ฝั่ง Server
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzS70EiLqVIFBPtjXFs8qoDpctrDMF7Ll8a1nyECJpcdaLfZjwLWiFnSKXAPXliV5NdJg/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyDYXHgD4mq3TrctLvp-VwKH5KaMm1RmyJQ5CRFssai-mPDS-yBe0H349tyNiWtrRhzg/exec';
     
     const initialBookings2569 = [
         { id: '20260902-walkin', name: 'วอค อิน', checkInDate: '2026-09-02', checkOutDate: '2026-09-03', cInTime: '14:00', cOutTime: '12:00', guests: '9', pets: '0', price: '1500', deposit: '0', status: 'active' },
@@ -678,8 +678,9 @@
     
     // คิวการกระทำออฟไลน์
     let syncQueue = JSON.parse(localStorage.getItem('mySyncQueue')) || [];
-    // เก็บโค้ดสุ่ม 4 หลัก แยกรหัสตามแต่ละเดือน
-    let localHashes = JSON.parse(localStorage.getItem('myLocalHashes')) || {};
+    
+    // เก็บโค้ดสุ่ม 4 หลัก (Global Hash) ไว้เช็คว่าข้อมูลเซิร์ฟเวอร์เปลี่ยนไหม
+    let globalHash = localStorage.getItem('myGlobalHash') || "";
     
     let isSyncing = false;
     let editingId = null;
@@ -706,7 +707,6 @@
     ];
     const shortMonthsThai = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-    // ข้อมูลรายได้เก่าที่ตั้งค่าไว้ (จำเป็นต้องมีเพื่อไม่ให้ระบบ error)
     const predefinedIncome2568 = {
         "01": { weekdayCount: 9, weekdayNet: 16200, weekendCount: 5, weekendNet: 12000 },
         "02": { weekdayCount: 4, weekdayNet: 7200, weekendCount: 4, weekendNet: 9600 },
@@ -764,13 +764,10 @@
         if (!/^[0-9]$/.test(e.key)) e.preventDefault();
     }
 
-    function cleanNumericInput(el) {
-        el.value = el.value.replace(/[^0-9]/g, '');
-    }
+    function cleanNumericInput(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
 
     function openFixItModal() { document.getElementById('fixItModalOverlay').style.display = 'flex'; }
     function closeFixItModal() { document.getElementById('fixItModalOverlay').style.display = 'none'; }
-
     function clearLocalCache() { localStorage.clear(); location.reload(); }
 
     let heartInterval;
@@ -799,7 +796,6 @@
 
         setBookingCheckInDate(toDateStr(today));
         setBookingCheckOutDate(toDateStr(tomorrow));
-
         selectedHolidayDateStr = toDateStr(today);
 
         bookings = JSON.parse(localStorage.getItem('myBookingsLocal')) || [];
@@ -828,7 +824,6 @@
         window.addEventListener('online', () => { manualSyncAndFetch(); });
         window.addEventListener('offline', () => { updateSyncStatusUI(); });
 
-        // เปิดแอปปุ๊บ สั่งซิงค์อัตโนมัติ
         manualSyncAndFetch();
     };
 
@@ -854,14 +849,15 @@
     function saveToLocal() {
         localStorage.setItem('myBookingsLocal', JSON.stringify(bookings));
         localStorage.setItem('myCustomHolidaysLocal', JSON.stringify(customHolidays));
+        localStorage.setItem('myGlobalHash', globalHash); // เซฟ Hash ไว้ด้วย
     }
 
     function enqueueSyncAction(payload) {
         syncQueue.push(payload);
         localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
         
-        // เซ็ตให้ localHashes ว่างไว้ เพื่อบังคับให้ดึงข้อมูลใหม่มาอัปเดต Hash หลังจากอัปโหลดเสร็จ
-        localHashes = {};
+        // ล้าง Hash เผื่อไว้ให้มันดึงใหม่เสมอเมื่อมีการส่งค่าขึ้นไป
+        globalHash = "";
         
         updateSyncStatusUI();
     }
@@ -887,7 +883,7 @@
                 localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
                 
                 // ล้าง Hash เพื่อไปดึงโค้ดสุ่มชุดใหม่ล่าสุดจาก Server กลับมา
-                localHashes = {};
+                globalHash = "";
                 saveToLocal();
             } else {
                 console.error('API Error:', result.message);
@@ -899,13 +895,12 @@
         isSyncing = false;
         updateSyncStatusUI();
         
-        // ถ้าคิวหมดแล้ว ให้เริ่มขั้นตอนดาวน์โหลดตรวจ Hash ทันที
         if (syncQueue.length === 0) {
             manualSyncAndFetch();
         }
     }
 
-    // ระบบ Delta Sync (เช็คโค้ดสุ่ม)
+    // ระบบ Global Hash Sync (เช็ค DayTracker ช่อง A2)
     async function manualSyncAndFetch(isManualClick = false) {
         if (!navigator.onLine) {
             updateSyncStatusUI();
@@ -921,34 +916,19 @@
         if (syncQueue.length === 0) {
             try {
                 const noCache = Date.now();
-                // 2. ถามเซิร์ฟเวอร์ว่า "ตอนนี้แต่ละเดือน มีโค้ดสุ่ม 4 หลักเป็นอะไรบ้าง?"
-                const hashRes = await fetch(`${SCRIPT_URL}?action=checkHashes&t=${noCache}`);
+                
+                // 2. ถามเซิร์ฟเวอร์ว่า "DayTracker ช่อง A2 โค้ด 4 หลักคืออะไร?"
+                const hashRes = await fetch(`${SCRIPT_URL}?action=checkGlobalHash&t=${noCache}`);
                 const hashResult = await hashRes.json();
                 
                 if (hashResult.status === 'success') {
-                    const serverHashes = hashResult.data.hashes || {};
-                    let monthsToFetch = [];
+                    const serverHash = hashResult.hash;
                     
-                    // เปรียบเทียบโค้ดสุ่มในเครื่อง (local) กับบนเซิร์ฟเวอร์ (server)
-                    for (let monthKey in serverHashes) {
-                        if (localHashes[monthKey] !== serverHashes[monthKey]) {
-                            // ถ้าโค้ดไม่ตรงกัน (หรือในเครื่องไม่มี) แปลว่าเดือนนี้มีข้อมูลเปลี่ยน ให้ดึงใหม่
-                            monthsToFetch.push(monthKey);
-                        }
-                    }
-                    
-                    let shouldFetchHolidays = true; // วันหยุดอาจจะมีอัปเดต ดึงใหม่เสมอเพื่อความชัวร์
-                    
-                    // ถ้าเดือนไหนโค้ดไม่ตรง ก็จะไปขอดึงข้อมูลเฉพาะเดือนนั้นๆ มา (ประหยัดเน็ตสุดๆ)
-                    if (monthsToFetch.length > 0 || Object.keys(localHashes).length === 0 || shouldFetchHolidays) {
-                        if(isManualClick) console.log("เดือนที่ต้องดาวน์โหลดใหม่:", monthsToFetch.length > 0 ? monthsToFetch : "โหลดทั้งหมด (ครั้งแรก)");
+                    // 3. ถ้าโค้ดไม่ตรงกันเลย ให้ดึงข้อมูลมาทับใหม่เลย
+                    if (globalHash !== serverHash || !serverHash || bookings.length === 0) {
+                        if(isManualClick) console.log("รหัสไม่ตรงกัน: ดาวน์โหลดข้อมูลอัปเดตล่าสุด...");
                         
-                        const fetchPayload = { 
-                            action: 'getGranularData', 
-                            months: monthsToFetch,
-                            fetchAll: Object.keys(localHashes).length === 0 // ถ้าแอปโล่งๆ ให้โหลดทั้งหมด
-                        };
-                        
+                        const fetchPayload = { action: 'getAllData' };
                         const dataRes = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(fetchPayload) });
                         const result = await dataRes.json();
                         
@@ -966,17 +946,8 @@
                                 return b;
                             });
 
-                            if (fetchPayload.fetchAll) {
-                                bookings = newFetchedBookings;
-                            } else {
-                                // โหลดเฉพาะบางเดือน เอาของใหม่ไปทับของเก่าในเดือนนั้น
-                                bookings = bookings.filter(b => {
-                                    if (!b.checkInDate) return true;
-                                    const bMonth = b.checkInDate.substring(0, 7); // เอาแค่ YYYY-MM
-                                    return !monthsToFetch.includes(bMonth); 
-                                });
-                                bookings = bookings.concat(newFetchedBookings);
-                            }
+                            // เอาข้อมูลใหม่ทับทั้งหมด
+                            bookings = newFetchedBookings;
 
                             // จัดการข้อมูลวันหยุด
                             if (result.data.holidays) {
@@ -987,14 +958,12 @@
                             }
 
                             // อัปเดตโค้ดสุ่มในเครื่องให้ตรงกับ Server ล่าสุด
-                            localHashes = serverHashes;
-                            localStorage.setItem('myLocalHashes', JSON.stringify(localHashes));
-                            
+                            globalHash = serverHash;
                             saveToLocal();
                             renderView();
                         }
                     } else {
-                        if(isManualClick) console.log("✅ โค้ดตรงกันทุกเดือน ไม่ต้องดาวน์โหลดข้อมูลใหม่ ประหยัดเน็ต!");
+                        if(isManualClick) console.log("✅ โค้ดตรงกัน (ข้อมูลล่าสุดแล้ว) ไม่ต้องดาวน์โหลดใหม่!");
                     }
                 }
             } catch (error) {
