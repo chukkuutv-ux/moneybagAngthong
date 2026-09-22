@@ -665,7 +665,8 @@
 </div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6hUm7n0Ra8L5fbMWM6gBjG6yezOOtmImb3pbvXAwg_DQmi76m99uOMyRdFCDwPPkK/exec';
+    // URL สำหรับเรียกใช้งาน Google Apps Script ฝั่ง Server
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzb-W2nVS2KY9VSRs-r3kZPucMuEIX7zCQ65nyW2MGK/dev';
     
     const initialBookings2569 = [
         { id: '20260902-walkin', name: 'วอค อิน', checkInDate: '2026-09-02', checkOutDate: '2026-09-03', cInTime: '14:00', cOutTime: '12:00', guests: '9', pets: '0', price: '1500', deposit: '0', status: 'active' },
@@ -675,9 +676,12 @@
     let bookings = []; 
     let customHolidays = []; 
     
+    // คิวการกระทำออฟไลน์
     let syncQueue = JSON.parse(localStorage.getItem('mySyncQueue')) || [];
+    // เก็บโค้ดสุ่ม 4 หลัก แยกรหัสตามแต่ละเดือน
+    let localHashes = JSON.parse(localStorage.getItem('myLocalHashes')) || {};
+    
     let isSyncing = false;
-
     let editingId = null;
     let viewingDate = new Date();
     let unlockedBookingIds = [];
@@ -686,10 +690,8 @@
 
     let currentCheckInDateStr = '';
     let currentCheckOutDateStr = '';
-
     let bookingPickerTarget = 'checkIn';
     let bookingPickerViewingDate = new Date();
-
     let holidayPickerViewingDate = new Date();
     let selectedHolidayDateStr = '';
 
@@ -704,6 +706,7 @@
     ];
     const shortMonthsThai = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
+    // ข้อมูลรายได้เก่าที่ตั้งค่าไว้ (จำเป็นต้องมีเพื่อไม่ให้ระบบ error)
     const predefinedIncome2568 = {
         "01": { weekdayCount: 9, weekdayNet: 16200, weekendCount: 5, weekendNet: 12000 },
         "02": { weekdayCount: 4, weekdayNet: 7200, weekendCount: 4, weekendNet: 9600 },
@@ -797,10 +800,7 @@
         setBookingCheckInDate(toDateStr(today));
         setBookingCheckOutDate(toDateStr(tomorrow));
 
-        const y = today.getFullYear();
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        const d = String(today.getDate()).padStart(2, '0');
-        selectedHolidayDateStr = `${y}-${m}-${d}`;
+        selectedHolidayDateStr = toDateStr(today);
 
         bookings = JSON.parse(localStorage.getItem('myBookingsLocal')) || [];
         customHolidays = JSON.parse(localStorage.getItem('myCustomHolidaysLocal')) || [];
@@ -828,6 +828,7 @@
         window.addEventListener('online', () => { manualSyncAndFetch(); });
         window.addEventListener('offline', () => { updateSyncStatusUI(); });
 
+        // เปิดแอปปุ๊บ สั่งซิงค์อัตโนมัติ
         manualSyncAndFetch();
     };
 
@@ -836,13 +837,13 @@
         const textEl = document.getElementById('syncStatusText');
         if (!navigator.onLine) {
             badge.className = 'status-offline';
-            textEl.innerHTML = `🔴 ออฟไลน์ ${syncQueue.length > 0 ? `(รอซิงค์ ${syncQueue.length} รายการ)` : ''}`;
+            textEl.innerHTML = `🔴 ออฟไลน์ ${syncQueue.length > 0 ? `(รออัปโหลด ${syncQueue.length})` : ''}`;
         } else if (isSyncing) {
             badge.className = 'status-syncing';
-            textEl.innerHTML = `🟡 กำลังซิงค์ข้อมูล... (${syncQueue.length} คิว)`;
+            textEl.innerHTML = `🟡 กำลังตรวจสอบและซิงค์...`;
         } else if (syncQueue.length > 0) {
             badge.className = 'status-syncing';
-            textEl.innerHTML = `🟡 รอซิงค์ ${syncQueue.length} รายการ...`;
+            textEl.innerHTML = `🟡 รออัปโหลดข้อมูล...`;
             processSyncQueue();
         } else {
             badge.className = 'status-online';
@@ -858,6 +859,10 @@
     function enqueueSyncAction(payload) {
         syncQueue.push(payload);
         localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
+        
+        // เซ็ตให้ localHashes ว่างไว้ เพื่อบังคับให้ดึงข้อมูลใหม่มาอัปเดต Hash หลังจากอัปโหลดเสร็จ
+        localHashes = {};
+        
         updateSyncStatusUI();
     }
 
@@ -880,17 +885,27 @@
             if (result.status === 'success') {
                 syncQueue.splice(0, queueToSend.length);
                 localStorage.setItem('mySyncQueue', JSON.stringify(syncQueue));
+                
+                // ล้าง Hash เพื่อไปดึงโค้ดสุ่มชุดใหม่ล่าสุดจาก Server กลับมา
+                localHashes = {};
+                saveToLocal();
             } else {
                 console.error('API Error:', result.message);
             }
         } catch (error) {
-            console.error('เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบสนองระหว่างซิงค์', error);
+            console.error('เน็ตหลุดหรือเซิร์ฟเวอร์ไม่ตอบสนองระหว่างอัปโหลด', error);
         }
 
         isSyncing = false;
         updateSyncStatusUI();
+        
+        // ถ้าคิวหมดแล้ว ให้เริ่มขั้นตอนดาวน์โหลดตรวจ Hash ทันที
+        if (syncQueue.length === 0) {
+            manualSyncAndFetch();
+        }
     }
 
+    // ระบบ Delta Sync (เช็คโค้ดสุ่ม)
     async function manualSyncAndFetch(isManualClick = false) {
         if (!navigator.onLine) {
             updateSyncStatusUI();
@@ -900,42 +915,87 @@
 
         if (isManualClick) showHeartLoader();
 
+        // 1. ถ้ามีคิวค้างอัปโหลด ให้ส่งไปเซิร์ฟเวอร์ก่อน
         await processSyncQueue();
 
         if (syncQueue.length === 0) {
             try {
                 const noCache = Date.now();
-                const res = await fetch(`${SCRIPT_URL}?action=getAllData&t=${noCache}`);
-                const result = await res.json();
+                // 2. ถามเซิร์ฟเวอร์ว่า "ตอนนี้แต่ละเดือน มีโค้ดสุ่ม 4 หลักเป็นอะไรบ้าง?"
+                const hashRes = await fetch(`${SCRIPT_URL}?action=checkHashes&t=${noCache}`);
+                const hashResult = await hashRes.json();
                 
-                if (result.status === 'success') {
-                    let fetchedBookings = result.data.bookings.map(b => {
-                        if (b.checkInDate) { let d = new Date(b.checkInDate); if (!isNaN(d)) b.checkInDate = toDateStr(d); }
-                        if (b.checkOutDate) { let d = new Date(b.checkOutDate); if (!isNaN(d)) b.checkOutDate = toDateStr(d); }
-                        b.cInTime = cleanTimeString(b.cInTime || '14:00');
-                        b.cOutTime = cleanTimeString(b.cOutTime || '12:00');
-                        if (b.originalDate) { let d = new Date(b.originalDate); if (!isNaN(d)) b.originalDate = toDateStr(d); }
-                        if (b.originalCheckOutDate) { let d = new Date(b.originalCheckOutDate); if (!isNaN(d)) b.originalCheckOutDate = toDateStr(d); }
-                        return b;
-                    });
+                if (hashResult.status === 'success') {
+                    const serverHashes = hashResult.data.hashes || {};
+                    let monthsToFetch = [];
                     
-                    initialBookings2569.forEach(initB => {
-                        if (!fetchedBookings.some(fb => String(fb.id) === String(initB.id))) {
-                            fetchedBookings.push(initB);
+                    // เปรียบเทียบโค้ดสุ่มในเครื่อง (local) กับบนเซิร์ฟเวอร์ (server)
+                    for (let monthKey in serverHashes) {
+                        if (localHashes[monthKey] !== serverHashes[monthKey]) {
+                            // ถ้าโค้ดไม่ตรงกัน (หรือในเครื่องไม่มี) แปลว่าเดือนนี้มีข้อมูลเปลี่ยน ให้ดึงใหม่
+                            monthsToFetch.push(monthKey);
                         }
-                    });
-
-                    bookings = fetchedBookings;
-
-                    if (result.data.holidays && result.data.holidays.length > 0) {
-                        customHolidays = result.data.holidays.map(h => {
-                            if (h.date) { let d = new Date(h.date); if (!isNaN(d)) h.date = toDateStr(d); }
-                            return h;
-                        });
                     }
                     
-                    saveToLocal();
-                    renderView();
+                    let shouldFetchHolidays = true; // วันหยุดอาจจะมีอัปเดต ดึงใหม่เสมอเพื่อความชัวร์
+                    
+                    // ถ้าเดือนไหนโค้ดไม่ตรง ก็จะไปขอดึงข้อมูลเฉพาะเดือนนั้นๆ มา (ประหยัดเน็ตสุดๆ)
+                    if (monthsToFetch.length > 0 || Object.keys(localHashes).length === 0 || shouldFetchHolidays) {
+                        if(isManualClick) console.log("เดือนที่ต้องดาวน์โหลดใหม่:", monthsToFetch.length > 0 ? monthsToFetch : "โหลดทั้งหมด (ครั้งแรก)");
+                        
+                        const fetchPayload = { 
+                            action: 'getGranularData', 
+                            months: monthsToFetch,
+                            fetchAll: Object.keys(localHashes).length === 0 // ถ้าแอปโล่งๆ ให้โหลดทั้งหมด
+                        };
+                        
+                        const dataRes = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(fetchPayload) });
+                        const result = await dataRes.json();
+                        
+                        if (result.status === 'success') {
+                            let newFetchedBookings = result.data.bookings || [];
+                            
+                            // จัด Format เวลา
+                            newFetchedBookings = newFetchedBookings.map(b => {
+                                if (b.checkInDate) { let d = new Date(b.checkInDate); if (!isNaN(d)) b.checkInDate = toDateStr(d); }
+                                if (b.checkOutDate) { let d = new Date(b.checkOutDate); if (!isNaN(d)) b.checkOutDate = toDateStr(d); }
+                                b.cInTime = cleanTimeString(b.cInTime || '14:00');
+                                b.cOutTime = cleanTimeString(b.cOutTime || '12:00');
+                                if (b.originalDate) { let d = new Date(b.originalDate); if (!isNaN(d)) b.originalDate = toDateStr(d); }
+                                if (b.originalCheckOutDate) { let d = new Date(b.originalCheckOutDate); if (!isNaN(d)) b.originalCheckOutDate = toDateStr(d); }
+                                return b;
+                            });
+
+                            if (fetchPayload.fetchAll) {
+                                bookings = newFetchedBookings;
+                            } else {
+                                // โหลดเฉพาะบางเดือน เอาของใหม่ไปทับของเก่าในเดือนนั้น
+                                bookings = bookings.filter(b => {
+                                    if (!b.checkInDate) return true;
+                                    const bMonth = b.checkInDate.substring(0, 7); // เอาแค่ YYYY-MM
+                                    return !monthsToFetch.includes(bMonth); 
+                                });
+                                bookings = bookings.concat(newFetchedBookings);
+                            }
+
+                            // จัดการข้อมูลวันหยุด
+                            if (result.data.holidays) {
+                                customHolidays = result.data.holidays.map(h => {
+                                    if (h.date) { let d = new Date(h.date); if (!isNaN(d)) h.date = toDateStr(d); }
+                                    return h;
+                                });
+                            }
+
+                            // อัปเดตโค้ดสุ่มในเครื่องให้ตรงกับ Server ล่าสุด
+                            localHashes = serverHashes;
+                            localStorage.setItem('myLocalHashes', JSON.stringify(localHashes));
+                            
+                            saveToLocal();
+                            renderView();
+                        }
+                    } else {
+                        if(isManualClick) console.log("✅ โค้ดตรงกันทุกเดือน ไม่ต้องดาวน์โหลดข้อมูลใหม่ ประหยัดเน็ต!");
+                    }
                 }
             } catch (error) {
                 console.error('ดึงข้อมูลล้มเหลว', error);
@@ -986,7 +1046,6 @@
         let monthHtml = '';
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('bpMonthSelect').innerHTML = monthHtml;
-
         let yearHtml = '';
         for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('bpYearSelect').innerHTML = yearHtml;
@@ -996,7 +1055,6 @@
         let monthHtml = '';
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('hpMonthSelect').innerHTML = monthHtml;
-
         let yearHtml = '';
         for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('hpYearSelect').innerHTML = yearHtml;
@@ -1006,7 +1064,6 @@
         let monthHtml = '';
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('mcMonthSelect').innerHTML = monthHtml;
-
         let yearHtml = '';
         for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('mcYearSelect').innerHTML = yearHtml;
@@ -1987,7 +2044,7 @@
                 wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet;
             } else if (selYear === "2026" && predefinedIncome2569[mVal]) {
                 const p = predefinedIncome2569[mVal];
-                wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekdayNet; wEndNet = p.weekendNet;
+                wDayCount = p.weekdayCount; wDayNet = p.weekdayNet; wEndCount = p.weekendCount; wEndNet = p.weekendNet;
             } else {
                 bookings.filter(b => b.status === 'active' && typeof b.checkInDate === 'string' && b.checkInDate.startsWith(`${selYear}-${mVal}`)).forEach(b => {
                     const p = Number(b.price || 0);
