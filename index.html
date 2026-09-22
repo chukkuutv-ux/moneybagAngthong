@@ -162,6 +162,18 @@
     </div>
 </div>
 
+<!-- Modal แจ้งเตือน/ยืนยัน แบบปรับแต่งได้ (แทน alert/confirm ธรรมดา) -->
+<div class="modal-overlay" id="customAlertConfirmModal" style="z-index: 1000000;">
+    <div class="modal-content" id="customModalBorder" style="max-width: 320px; text-align: center; border-top: 5px solid #424242;">
+        <h3 id="customModalTitle" style="margin: 0 0 12px 0; color: #424242; font-size: 18px;">แจ้งเตือน</h3>
+        <p id="customModalText" style="margin: 0 0 15px 0; font-size: 14.5px; color: #444; line-height: 1.5; white-space: pre-line;"></p>
+        <div style="display: flex; gap: 8px; width: 100%;">
+            <button id="customModalOkBtn" style="flex: 1; padding: 10px; background: #2e7d32; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s;" onclick="executeCustomModalOk()">✔️ ตกลง</button>
+            <button id="customModalCancelBtn" style="flex: 1; padding: 10px; background: #e53935; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s;" onclick="closeCustomModal()">❌ ยกเลิก</button>
+        </div>
+    </div>
+</div>
+
 <!-- ระบบหลัก (ซ่อนไว้ก่อนจนกว่าจะล็อกอินผ่าน) -->
 <div class="main-container" id="mainApp" style="display: none;">
     
@@ -533,7 +545,7 @@
             </div>
         </div>
         <div class="modal-actions" style="flex-direction: column;">
-            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="exportMonthlyToNotepad()">📝 บันทึกรายเดือน (Notepad)</button>
+            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="confirmExportMonthly()">📝 บันทึกรายเดือน (Notepad)</button>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button class="btn-capture" onclick="copyIncomeToClipboard()" style="flex: 1;">📸 รูปภาพ</button>
                 <button class="btn-close" onclick="closeIncomeModal()" style="flex: 1;">ปิด</button>
@@ -574,7 +586,7 @@
             </div>
         </div>
         <div class="modal-actions" style="flex-direction: column;">
-            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="exportYearlyToNotepad()">📝 บันทึกรายปี (Notepad)</button>
+            <button class="btn-capture" style="background-color: #424242; width: 100%;" onclick="confirmExportYearly()">📝 บันทึกรายปี (Notepad)</button>
             <div style="display: flex; gap: 8px; width: 100%;">
                 <button class="btn-capture" style="background-color: #0288d1; flex: 1;" onclick="copyYearlyIncomeToClipboard()">📸 รูปภาพ</button>
                 <button class="btn-close" onclick="closeYearlyIncomeModal()" style="flex: 1;">ปิด</button>
@@ -657,6 +669,51 @@
         console.error("Firebase persistence error:", err.code);
     });
 
+    // ==========================================
+    // ฟังก์ชัน Custom Modal Alert/Confirm ใหม่ทั้งหมด
+    // ==========================================
+    let customModalAction = null;
+
+    function showCustomAlert(message, title = "แจ้งเตือน", color = "#424242") {
+        document.getElementById('customModalBorder').style.borderTopColor = color;
+        document.getElementById('customModalTitle').innerText = title;
+        document.getElementById('customModalTitle').style.color = color;
+        document.getElementById('customModalText').innerText = message;
+        
+        document.getElementById('customModalCancelBtn').style.display = 'none'; // ซ่อนปุ่มยกเลิก
+        document.getElementById('customModalOkBtn').innerText = "✔️ เข้าใจแล้ว";
+        document.getElementById('customModalOkBtn').style.background = color;
+        
+        customModalAction = null;
+        document.getElementById('customAlertConfirmModal').style.display = 'flex';
+    }
+
+    function showCustomConfirm(message, actionCallback, title = "ยืนยันการทำรายการ", color = "#ff9800") {
+        document.getElementById('customModalBorder').style.borderTopColor = color;
+        document.getElementById('customModalTitle').innerText = title;
+        document.getElementById('customModalTitle').style.color = color;
+        document.getElementById('customModalText').innerText = message;
+        
+        document.getElementById('customModalCancelBtn').style.display = 'block'; // แสดงปุ่มยกเลิก
+        document.getElementById('customModalOkBtn').innerText = "✔️ ตกลง";
+        document.getElementById('customModalOkBtn').style.background = "#2e7d32";
+        
+        customModalAction = actionCallback;
+        document.getElementById('customAlertConfirmModal').style.display = 'flex';
+    }
+
+    function closeCustomModal() {
+        document.getElementById('customAlertConfirmModal').style.display = 'none';
+    }
+
+    function executeCustomModalOk() {
+        if (customModalAction) {
+            customModalAction();
+        }
+        closeCustomModal();
+    }
+
+
     let bookings = []; 
     let customHolidays = []; 
     
@@ -696,8 +753,8 @@
         ipcRenderer.invoke('save-file-d-drive', { base64Data: dataUrl, yearStr: yearStr, monthFolderStr: monthFolderStr, fileName: fileName }).then(res => {
             if (res.success) console.log('Saved to: ' + res.filePath);
             else if (res.status === 'cancelled') console.log('User cancelled overwrite');
-            else alert('เกิดข้อผิดพลาดในการบันทึก: ' + res.message);
-        }).catch(err => { alert('เกิดข้อผิดพลาดในการรันคำสั่ง: ' + err.message); });
+            else showCustomAlert('เกิดข้อผิดพลาดในการบันทึก: ' + res.message, "Error", "#e53935");
+        }).catch(err => { showCustomAlert('เกิดข้อผิดพลาดในการรันคำสั่ง: ' + err.message, "Error", "#e53935"); });
     }
 
     function filterNumericKey(e) {
@@ -710,11 +767,11 @@
     
     // ตั้งให้ปุ่มล้างระบบ ออกจากระบบด้วย
     function clearLocalCache() { 
-        if(confirm("ต้องการล้างระบบและออกจากระบบด้วยใช่ไหมครับ?")) { 
+        showCustomConfirm("ต้องการล้างระบบและออกจากระบบด้วยใช่ไหมครับ?", () => {
             localStorage.clear(); 
             sessionStorage.clear();
             location.reload(); 
-        } 
+        }, "🚨 ล้างระบบ", "#b71c1c");
     }
 
     let heartInterval;
@@ -794,7 +851,7 @@
                 hideHeartLoader();
             }, 800);
         } else {
-            alert('❌ ไอดี หรือ รหัสผ่าน ไม่ถูกต้องครับ!');
+            showCustomAlert('❌ ไอดี หรือ รหัสผ่าน ไม่ถูกต้องครับ!', 'เข้าสู่ระบบล้มเหลว', '#c62828');
         }
     }
 
@@ -1083,25 +1140,25 @@
     }
 
     function promptUnlock(id) {
-        if (confirm("ปลดล้อคไหม ?\n\n(กด OK/ตกลง = ใช่  |  กด Cancel/ยกเลิก = ไม่)")) {
+        showCustomConfirm("ปลดล็อกรายการนี้ใช่หรือไม่?", () => {
             unlockedBookingIds.push(String(id));
-            alert("🔓 ปลดล็อกเรียบร้อย");
+            showCustomAlert("🔓 ปลดล็อกเรียบร้อย", "สำเร็จ", "#2e7d32");
             renderView();
             if (selectedBookingForAction && String(selectedBookingForAction.id) === String(id)) {
                 openActionChoiceModal(selectedBookingForAction);
             }
-        }
+        }, "🔓 ปลดล็อกรายการ", "#ff9800");
     }
 
     function relockBooking(id) {
-        if (confirm("ต้องการล็อกรายการนี้กลับไปเป็นประวัติถาวรใช่หรือไม่?")) {
+        showCustomConfirm("ต้องการล็อกรายการนี้กลับไปเป็นประวัติถาวรใช่หรือไม่?", () => {
             unlockedBookingIds = unlockedBookingIds.filter(item => String(item) !== String(id));
             if (editingId !== null && String(editingId) === String(id)) cancelEditMode();
             renderView();
             if (selectedBookingForAction && String(selectedBookingForAction.id) === String(id)) {
                 openActionChoiceModal(selectedBookingForAction);
             }
-        }
+        }, "🔒 ล็อกประวัติ", "#546e7a");
     }
 
     function getPrevDateStr(dateStr) {
@@ -1140,7 +1197,7 @@
     function getFormattedName(name) { return name ? (name.startsWith('คุณ') ? name : `คุณ  ${name}`) : ""; }
 
     function selectDateFromCalendar(dateStr) {
-        if (confirm(`คุณต้องการเพิ่มวันจองในวันที่ ${formatFullThaiDate(dateStr)} ใช่หรือไม่?`)) {
+        showCustomConfirm(`คุณต้องการเพิ่มวันจองในวันที่\n${formatFullThaiDate(dateStr)}\nใช่หรือไม่?`, () => {
             if (editingId !== null) cancelEditMode();
             setBookingCheckInDate(dateStr);
             const outObj = new Date(dateStr);
@@ -1149,7 +1206,7 @@
             resetDefaultTime();
             document.getElementById('formCardBox').scrollIntoView({ behavior: 'smooth' });
             document.getElementById('inName').focus();
-        }
+        }, "📅 ยืนยันการเลือกวัน", "#0d47a1");
     }
 
     function openActionChoiceModal(booking) {
@@ -1176,12 +1233,18 @@
 
     function chooseDeleteBooking() {
         if (!selectedBookingForAction) return;
-        if (isLockedActive(selectedBookingForAction)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนลบครับ"); return; }
-        if (confirm(`คุณต้องการลบรายการจองของ "${getFormattedName(selectedBookingForAction.name)}" ใช่หรือไม่?`)) {
-            db.collection("bookings").doc(String(selectedBookingForAction.id)).delete();
-            if (editingId !== null && String(editingId) === String(selectedBookingForAction.id)) cancelEditMode();
+        const b = selectedBookingForAction;
+        closeActionChoiceModal(); // ปิด Modal เมนูก่อน
+        
+        if (isLockedActive(b)) { 
+            showCustomAlert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนลบครับ", "ลบไม่ได้", "#e53935"); 
+            return; 
         }
-        closeActionChoiceModal();
+        
+        showCustomConfirm(`คุณต้องการลบรายการจองของ\n"${getFormattedName(b.name)}"\nใช่หรือไม่?`, () => {
+            db.collection("bookings").doc(String(b.id)).delete();
+            if (editingId !== null && String(editingId) === String(b.id)) cancelEditMode();
+        }, "🗑️ ยืนยันการลบ", "#e53935");
     }
 
     function choosePostponeSpecific() {
@@ -1197,7 +1260,9 @@
     function choosePostponeIndefinite() {
         if (!selectedBookingForAction) return;
         const b = selectedBookingForAction;
-        if (confirm(`เลื่อนคิวของคุณ ${getFormattedName(b.name)} แบบไม่มีกำหนด ใช่หรือไม่?\n(คิวในปฏิทินจะว่าง และข้อมูลจะย้ายไปที่ "รายชื่อขอเลื่อน")`)) {
+        closeActionChoiceModal(); // ปิด Modal เมนูก่อน
+        
+        showCustomConfirm(`เลื่อนคิวของคุณ ${getFormattedName(b.name)} แบบไม่มีกำหนด ใช่หรือไม่?\n\n(คิวในปฏิทินจะว่าง และข้อมูลจะย้ายไปที่ "รายชื่อขอเลื่อน")`, () => {
             b.originalDate = b.checkInDate;
             b.originalCheckOutDate = b.checkOutDate;
             b.checkInDate = "";
@@ -1206,8 +1271,7 @@
             
             // อัพเดตขึ้น Firestore
             db.collection("bookings").doc(String(b.id)).set(b);
-        }
-        closeActionChoiceModal();
+        }, "⏳ เลื่อนไม่มีกำหนด", "#d84315");
     }
 
     function openPostponedModal() { renderPostponedList(); document.getElementById('postponedModalOverlay').style.display = 'flex'; }
@@ -1224,7 +1288,7 @@
     }
 
     function cancelPostponedBooking(id) {
-        if (confirm('แน่ใจใช่ไหมจะยกเลิกการจอง ใช่ หรือ ไม่')) {
+        showCustomConfirm('แน่ใจใช่ไหมว่าจะยกเลิกการจองนี้ถาวร\n(ลบรายการขอเลื่อนทิ้ง)?', () => {
             const b = bookings.find(item => String(item.id) === String(id));
             if (b) {
                 b.status = 'cancelled';
@@ -1233,7 +1297,7 @@
                 else { const d = new Date(b.originalDate); d.setDate(d.getDate() + 1); b.checkOutDate = toDateStr(d); }
                 db.collection("bookings").doc(String(b.id)).set(b);
             }
-        }
+        }, "❌ ยกเลิกการจอง", "#e53935");
     }
 
     function renderPostponedList() {
@@ -1436,11 +1500,11 @@
 
     function handleSubmit() {
         const nameInput = document.getElementById('inName').value.trim();
-        if (!nameInput) { alert('กรุณากรอกชื่อลูกค้าครับ'); return; }
-        if (new Date(currentCheckOutDateStr) <= new Date(currentCheckInDateStr)) { alert('วันออกต้องอยู่หลังวันเข้าพักอย่างน้อย 1 วันครับ'); return; }
+        if (!nameInput) { showCustomAlert('กรุณากรอกชื่อลูกค้าครับ', 'ข้อมูลไม่ครบ', '#e53935'); return; }
+        if (new Date(currentCheckOutDateStr) <= new Date(currentCheckInDateStr)) { showCustomAlert('วันออกต้องอยู่หลังวันเข้าพักอย่างน้อย 1 วันครับ', 'วันที่ไม่ถูกต้อง', '#e53935'); return; }
 
         const overlap = isDateOverlap(currentCheckInDateStr, currentCheckOutDateStr, editingId);
-        if (overlap) { alert(`ไม่สามารถจองได้ เนื่องจากช่วงเวลาทับซ้อนกับการจองของ ${getFormattedName(overlap.name)}`); return; }
+        if (overlap) { showCustomAlert(`ไม่สามารถจองได้ เนื่องจากช่วงเวลาทับซ้อนกับการจองของ\n\n${getFormattedName(overlap.name)}`, 'คิวทับซ้อน', '#e53935'); return; }
 
         const bookingData = {
             id: editingId !== null ? editingId : Date.now(),
@@ -1474,13 +1538,13 @@
         }
 
         // =====================================
-        // บันทึกลง Firestore โดยตรง (แทน API เดิม)
+        // บันทึกลง Firestore โดยตรง
         // =====================================
         db.collection("bookings").doc(String(bookingData.id)).set(bookingData)
         .then(() => {
             showSummaryModal(bookingData);
         }).catch((error) => {
-            alert("เกิดข้อผิดพลาด: " + error.message);
+            showCustomAlert("เกิดข้อผิดพลาด: " + error.message, "Error", "#e53935");
         });
 
         cancelEditMode();
@@ -1489,7 +1553,7 @@
     function startEditMode(id) {
         const b = bookings.find(item => String(item.id) === String(id));
         if (!b) return;
-        if (isLockedActive(b)) { alert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนแก้ไขครับ"); return; }
+        if (isLockedActive(b)) { showCustomAlert("🔒 รายการนี้ถูกล็อกอัตโนมัติแล้ว กรุณากดปลดล็อกก่อนแก้ไขครับ", "แก้ไขไม่ได้", "#e53935"); return; }
 
         editingId = b.id;
         document.getElementById('inName').value = b.name.replace(/^คุณ/, '');
@@ -1795,8 +1859,8 @@
     // จัดการวันหยุดด้วย Firestore
     // =====================================
     function addCustomHoliday() {
-        if (!selectedHolidayDateStr) { alert('กรุณาคลิกเลือกวันที่หยุดบนปฏิทินก่อนครับ'); return; }
-        if (customHolidays.some(h => h.date === selectedHolidayDateStr)) { alert('วันที่นี้ถูกกำหนดเป็นวันหยุดไว้แล้วครับ'); return; }
+        if (!selectedHolidayDateStr) { showCustomAlert('กรุณาคลิกเลือกวันที่หยุดบนปฏิทินก่อนครับ', 'แจ้งเตือน', '#ff9500'); return; }
+        if (customHolidays.some(h => h.date === selectedHolidayDateStr)) { showCustomAlert('วันที่นี้ถูกกำหนดเป็นวันหยุดไว้แล้วครับ', 'ข้อมูลซ้ำ', '#ff9500'); return; }
 
         const holidayData = { date: selectedHolidayDateStr, name: document.getElementById('inHolidayName').value.trim() };
         db.collection("holidays").doc(selectedHolidayDateStr).set(holidayData);
@@ -1806,10 +1870,10 @@
         if (!selectedHolidayDateStr) return;
         const h = customHolidays.find(item => item.date === selectedHolidayDateStr);
         if (h) {
-            if (confirm(`คุณต้องการลบวันหยุดวันที่ ${formatFullThaiDate(h.date)} ใช่หรือไม่?`)) {
+            showCustomConfirm(`คุณต้องการลบวันหยุดวันที่ ${formatFullThaiDate(h.date)} ใช่หรือไม่?`, () => {
                 deletedHolidaysStack.push(h);
                 db.collection("holidays").doc(selectedHolidayDateStr).delete().then(() => { updateUndoHolidayBtn(); updateHolidayActionUI(); });
-            }
+            }, "🗑️ ลบวันหยุด", "#e53935");
         }
     }
 
@@ -1817,7 +1881,9 @@
         const restored = deletedHolidaysStack.pop();
         if (!customHolidays.some(h => h.date === restored.date)) {
             db.collection("holidays").doc(restored.date).set(restored).then(() => { updateUndoHolidayBtn(); updateHolidayActionUI(); });
-        } else alert(`วันที่ ${formatFullThaiDate(restored.date)} มีอยู่ในรายการแล้วครับ`);
+        } else {
+            showCustomAlert(`วันที่ ${formatFullThaiDate(restored.date)} มีอยู่ในรายการแล้วครับ`, "ผิดพลาด", "#e53935");
+        }
     }
 
     function updateUndoHolidayBtn() { document.getElementById('btnUndoHoliday').style.display = deletedHolidaysStack.length > 0 ? 'block' : 'none'; }
@@ -1829,9 +1895,15 @@
     }
     if (localStorage.getItem('bgTheme') === 'dark') { document.body.classList.add('dark-bg'); document.getElementById('themeToggleBtn').innerText = '☀️'; }
     
-    function exportMonthlyToNotepad() {
-        if (!confirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายเดือน ลงในเครื่อง ใช่หรือไม่?")) return;
+    function confirmExportMonthly() {
+        showCustomConfirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายเดือน ลงในเครื่อง ใช่หรือไม่?", doExportMonthly, "📝 บันทึกรายเดือน", "#424242");
+    }
 
+    function confirmExportYearly() {
+        showCustomConfirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายปี ลงในเครื่อง ใช่หรือไม่?", doExportYearly, "📝 บันทึกรายปี", "#424242");
+    }
+
+    function doExportMonthly() {
         // ดึงเดือนและปีจาก Dropdown หน้าต่างสรุป
         const selYear = document.getElementById('incYearSelect').value; 
         const selMonth = document.getElementById('incMonthSelect').value;
@@ -1887,9 +1959,7 @@
         URL.revokeObjectURL(url);
     }
 
-    function exportYearlyToNotepad() {
-        if (!confirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายปี ลงในเครื่อง ใช่หรือไม่?")) return;
-
+    function doExportYearly() {
         // ดึงปีจาก Dropdown หน้าต่างสรุปรายปี
         const selYear = document.getElementById('yearlyIncYearSelect').value;
         const yearTh = parseInt(selYear, 10) + 543;
@@ -1952,28 +2022,27 @@
         const btn = document.getElementById('btnGlobalUnlock');
         
         if (!isGlobalUnlocked) {
-            if (confirm("ต้องการจะปลดล็อกประวัติการจองเก่าทั้งหมด ใช่หรือไม่?")) {
+            showCustomConfirm("ต้องการจะปลดล็อกประวัติการจองเก่าทั้งหมด ใช่หรือไม่?", () => {
                 isGlobalUnlocked = true;
                 btn.innerHTML = '🔓 ล็อกประวัติกลับ';
                 btn.style.backgroundColor = '#546e7a';
-                alert("🔓 ปลดล็อกประวัติทั้งหมดเรียบร้อยแล้ว ช่องปฏิทินที่ผ่านไปแล้วจะเปิดให้กดจองย้อนหลังได้ครับ");
-                renderView(); // รีเฟรชหน้าจอให้ช่องสีเทากลับมากดได้
-            }
+                showCustomAlert("🔓 ปลดล็อกประวัติทั้งหมดเรียบร้อยแล้ว\n\nช่องปฏิทินที่ผ่านไปแล้วจะเปิดให้กดจองย้อนหลังได้ครับ", "สำเร็จ", "#2e7d32");
+                renderView(); 
+            }, "🔓 ปลดล็อกปฏิทิน", "#ff9800");
         } else {
-            if (confirm("ต้องการล็อกประวัติการจองกลับไปเป็นประวัติถาวร ใช่หรือไม่?")) {
+            showCustomConfirm("ต้องการล็อกประวัติการจองกลับไปเป็นประวัติถาวร ใช่หรือไม่?", () => {
                 isGlobalUnlocked = false;
                 btn.innerHTML = '🔒 ปลดล็อกปฎิทิน';
                 btn.style.backgroundColor = '#ff9800';
                 
-                // ป้องกันกรณีที่กดแก้ไขค้างไว้แล้วมาล็อก
                 if (editingId !== null) {
                     const b = bookings.find(item => String(item.id) === String(editingId));
                     if (b && isLockedActive(b)) cancelEditMode();
                 }
                 
-                alert("🔒 ล็อกประวัติกลับเป็นปกติเรียบร้อยครับ");
+                showCustomAlert("🔒 ล็อกประวัติกลับเป็นปกติเรียบร้อยครับ", "สำเร็จ", "#2e7d32");
                 renderView();
-            }
+            }, "🔒 ล็อกกลับ", "#546e7a");
         }
     }
 </script>
