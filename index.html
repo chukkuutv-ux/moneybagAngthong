@@ -1830,6 +1830,8 @@
     if (localStorage.getItem('bgTheme') === 'dark') { document.body.classList.add('dark-bg'); document.getElementById('themeToggleBtn').innerText = '☀️'; }
     
     function exportMonthlyToNotepad() {
+        if (!confirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายเดือน ลงในเครื่อง ใช่หรือไม่?")) return;
+
         // ดึงเดือนและปีจาก Dropdown หน้าต่างสรุป
         const selYear = document.getElementById('incYearSelect').value; 
         const selMonth = document.getElementById('incMonthSelect').value;
@@ -1886,6 +1888,8 @@
     }
 
     function exportYearlyToNotepad() {
+        if (!confirm("คุณต้องการบันทึกไฟล์สรุปบัญชีรายปี ลงในเครื่อง ใช่หรือไม่?")) return;
+
         // ดึงปีจาก Dropdown หน้าต่างสรุปรายปี
         const selYear = document.getElementById('yearlyIncYearSelect').value;
         const yearTh = parseInt(selYear, 10) + 543;
