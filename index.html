@@ -260,7 +260,11 @@
     </div>
 
     <div class="card-box">
-        <button class="btn-cap-cal" style="margin-bottom: 10px; width: 100%;" onclick="copyCalendarToClipboard()">📸 ภาพปฏิทิน</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px; width: 100%;">
+            <button class="btn-cap-cal" style="flex: 1; margin: 0;" onclick="copyCalendarToClipboard()">📸 ภาพปฏิทิน</button>
+            <button id="btnUndoBooking" onclick="undoDeleteBooking()" style="background-color: #757575; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: not-allowed; padding: 0 16px; opacity: 0.5; transition: 0.2s;" disabled title="ย้อนกลับ (กู้คืนที่ลบล่าสุด)">↩️</button>
+            <button id="btnRedoBooking" onclick="redoDeleteBooking()" style="background-color: #757575; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: not-allowed; padding: 0 16px; opacity: 0.5; transition: 0.2s;" disabled title="ไปข้างหน้า (ยกเลิกการกู้คืน)">↪️</button>
+        </div>
         <div style="clear:both;"></div>
 
         <div class="calendar-capture-area" id="calendarCaptureArea">
@@ -713,7 +717,6 @@
         closeCustomModal();
     }
 
-
     let bookings = []; 
     let customHolidays = []; 
     
@@ -723,6 +726,10 @@
     let selectedBookingForAction = null;
     let deletedHolidaysStack = [];
     let isGlobalUnlocked = false;
+
+    // ตัวแปรสำหรับระบบกู้คืนการจอง
+    let deletedBookingsStack = []; // เก็บประวัติการลบ 10 ครั้ง
+    let redoBookingsStack = []; // เก็บประวัติการย้อนกลับ
 
     let currentCheckInDateStr = '';
     let currentCheckOutDateStr = '';
@@ -797,6 +804,7 @@
         populateBookingPickerDropdowns();
         populateMainCalendarPickerDropdowns();
         resetDefaultTime();
+        updateUndoRedoButtons(); // เรียกให้ปุ่มรีเซ็ตสี
 
         const today = new Date();
         const tomorrow = new Date(today);
@@ -1231,6 +1239,62 @@
     function chooseUnlockBooking() { if (selectedBookingForAction) promptUnlock(selectedBookingForAction.id); }
     function chooseRelockBooking() { if (selectedBookingForAction) relockBooking(selectedBookingForAction.id); }
 
+    // ==========================================
+    // เพิ่มระบบ Undo / Redo การลบการจอง
+    // ==========================================
+    function updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('btnUndoBooking');
+        const redoBtn = document.getElementById('btnRedoBooking');
+        
+        if (deletedBookingsStack.length > 0) {
+            undoBtn.style.opacity = '1';
+            undoBtn.style.backgroundColor = '#ff9800'; // สีส้มเพื่อความเด่น
+            undoBtn.style.cursor = 'pointer';
+            undoBtn.disabled = false;
+        } else {
+            undoBtn.style.opacity = '0.5';
+            undoBtn.style.backgroundColor = '#757575';
+            undoBtn.style.cursor = 'not-allowed';
+            undoBtn.disabled = true;
+        }
+
+        if (redoBookingsStack.length > 0) {
+            redoBtn.style.opacity = '1';
+            redoBtn.style.backgroundColor = '#0288d1'; // สีฟ้าเพื่อความเด่น
+            redoBtn.style.cursor = 'pointer';
+            redoBtn.disabled = false;
+        } else {
+            redoBtn.style.opacity = '0.5';
+            redoBtn.style.backgroundColor = '#757575';
+            redoBtn.style.cursor = 'not-allowed';
+            redoBtn.disabled = true;
+        }
+    }
+
+    function undoDeleteBooking() {
+        if (deletedBookingsStack.length === 0) return;
+        const b = deletedBookingsStack.pop();
+        redoBookingsStack.push(b);
+        updateUndoRedoButtons();
+        
+        // เซฟกลับขึ้น Firestore
+        db.collection("bookings").doc(String(b.id)).set(b).then(() => {
+            showCustomAlert(`กู้คืนรายการจองของ\n${getFormattedName(b.name)}\nเรียบร้อยครับ`, "กู้คืนสำเร็จ", "#2e7d32");
+        });
+    }
+
+    function redoDeleteBooking() {
+        if (redoBookingsStack.length === 0) return;
+        const b = redoBookingsStack.pop();
+        deletedBookingsStack.push(b);
+        updateUndoRedoButtons();
+        
+        // ลบออกจาก Firestore อีกครั้ง
+        db.collection("bookings").doc(String(b.id)).delete().then(() => {
+            showCustomAlert(`ลบรายการจองของ\n${getFormattedName(b.name)}\nอีกครั้งแล้วครับ`, "ลบสำเร็จ", "#e53935");
+        });
+    }
+
     function chooseDeleteBooking() {
         if (!selectedBookingForAction) return;
         const b = selectedBookingForAction;
@@ -1242,6 +1306,12 @@
         }
         
         showCustomConfirm(`คุณต้องการลบรายการจองของ\n"${getFormattedName(b.name)}"\nใช่หรือไม่?`, () => {
+            // เก็บข้อมูลลงประวัติเพื่อกู้คืน (จำกัด 10 ครั้ง)
+            deletedBookingsStack.push(b);
+            if (deletedBookingsStack.length > 10) deletedBookingsStack.shift();
+            redoBookingsStack = []; // ล้างคิวทำซ้ำ
+            updateUndoRedoButtons();
+
             db.collection("bookings").doc(String(b.id)).delete();
             if (editingId !== null && String(editingId) === String(b.id)) cancelEditMode();
         }, "🗑️ ยืนยันการลบ", "#e53935");
