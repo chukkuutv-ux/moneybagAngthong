@@ -941,7 +941,7 @@
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('bpMonthSelect').innerHTML = monthHtml;
         let yearHtml = '';
-        for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
+        for (let y = 2025; y <= 2065; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('bpYearSelect').innerHTML = yearHtml;
     }
 
@@ -950,7 +950,7 @@
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('hpMonthSelect').innerHTML = monthHtml;
         let yearHtml = '';
-        for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
+        for (let y = 2025; y <= 2065; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('hpYearSelect').innerHTML = yearHtml;
     }
 
@@ -959,13 +959,13 @@
         monthsThai.forEach(m => { monthHtml += `<option value="${m.val}">${m.name}</option>`; });
         document.getElementById('mcMonthSelect').innerHTML = monthHtml;
         let yearHtml = '';
-        for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
+        for (let y = 2025; y <= 2065; y++) { yearHtml += `<option value="${y}">${y + 543}</option>`; }
         document.getElementById('mcYearSelect').innerHTML = yearHtml;
     }
 
     function populateIncomeFilterDropdowns() {
         let yearHtml = '';
-        for (let y = 2025; y <= 2035; y++) { yearHtml += `<option value="${y}">ปี พ.ศ. ${y + 543}</option>`; }
+        for (let y = 2025; y <= 2065; y++) { yearHtml += `<option value="${y}">ปี พ.ศ. ${y + 543}</option>`; }
         document.getElementById('incYearSelect').innerHTML = yearHtml;
         if(document.getElementById('yearlyIncYearSelect')) { document.getElementById('yearlyIncYearSelect').innerHTML = yearHtml; }
 
